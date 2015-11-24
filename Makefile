@@ -4,7 +4,7 @@ CFLAGS=-g
 .PHONY : all
 all : main.o
 
-main.o : algo.h rule.h util.h main.cpp util.o rule.o algo.o
+main.o : algo.h rule.h util.h test_board.h main.cpp util.o rule.o algo.o
 	$(CC) $(CFLAGS) util.o rule.o algo.o main.cpp -o main.o
 
 util.o : util.h util.cpp

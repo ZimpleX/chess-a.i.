@@ -1,14 +1,25 @@
 #pragma once
+#include <iostream>
 /*
  * rules for chess:
  *      - valid move of each element
  *      - current board status
  */
 
+/*
+ * Board coordinate:
+ *      r: up to down --> 0 to 7
+ *      c: left to right --> 0 to 7
+ * Black is placed at top: i.e., r = 0, 1
+ * White is placed at bottom: i.e., r = 6, 7
+ */
+
 #define BLACK -1
 #define WHITE 1
 
-enum Role {KING=1, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
+#define INVALID -1
+
+enum Role {EMPTY=0, KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
 
 /*
  * up, down, right, left,
@@ -16,20 +27,34 @@ enum Role {KING=1, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
  */
 //enum Dir {UP=1, DN, RG, LF, UR, UL, DR, DL};
 
-/*
- * indicate the role at that location
- * White side: positive
- * Black side: negative
- */
-extern int board_stat[8][8];
 
-/*
- * move the roles on board
- * return of move():
- *      true if the move is legal
- *      false if the move is illegal
- *
- * this function will update the board_stat accordingly
- * if the king is eaten, then the program terminates immediately
- */
-bool move(int start_x, int start_y, int end_x, int end_y);
+class Board_Stat {
+private:
+    bool is_terminate;
+    /*
+     * indicate the role at that location
+     * White side: positive
+     * Black side: negative
+     */
+    int board_stat[8][8];
+
+    /*
+     * indicate if there could be an en-passant at next move:
+     *      this is set to be the x of a pawn taking his first move 2 steps forward,
+     *      and is set to be INVALID by the opponent move immediately after
+     */
+    int enpassant_c;
+public:
+    Board_Stat(int init[8][8]);
+    /*
+     * move the pieces according to the rules, and update all status accordingly
+     * return:
+     *      true: if the move is legal
+     *      false: if the move is illegal
+     * if the king is dead, set is_terminate to true
+     */
+    bool move(int start_r, int start_c, int end_r, int end_c);
+
+    friend std::ostream& operator<< (std::ostream& os, const Board_Stat& bs);
+};
+
