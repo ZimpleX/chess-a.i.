@@ -17,6 +17,9 @@
 #define BLACK -1
 #define WHITE 1
 
+#define INIT_MOVE BLACK
+#define PLAYER WHITE
+
 #define INVALID -1
 
 enum Role {EMPTY=0, KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
@@ -27,6 +30,7 @@ enum Role {EMPTY=0, KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
  */
 //enum Dir {UP=1, DN, RG, LF, UR, UL, DR, DL};
 
+bool check_boarder(int r, int c);
 
 class Board_Stat {
 private:
@@ -54,6 +58,9 @@ public:
      * if the king is dead, set is_terminate to true
      */
     bool move(int start_r, int start_c, int end_r, int end_c);
+    void ai_move(int ai_side);
+    bool get_is_terminate();
+    int get_piece(int r, int c);
 
     friend std::ostream& operator<< (std::ostream& os, const Board_Stat& bs);
 };

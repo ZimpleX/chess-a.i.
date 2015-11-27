@@ -1,4 +1,5 @@
 #pragma once
+#include "rule.h"
 /*
  * algo for chess A.I:
  *      - alpha-beta pruning
@@ -6,3 +7,7 @@
  *      - cost evaluation
  */
 
+
+/*
+ * main body for a.i. search
+ */
