@@ -12,6 +12,20 @@
 #define POSI_INFINITY 10000000
 
 /*
+ * coefficients for different pieces
+ */
+#define KK 200
+#define KQ 9
+#define KR 5
+#define KB 3
+#define KN 3
+#define KP 1
+#define KP_SPEC -0.5
+#define KMOBILITY 0.1
+
+#define SEARCH_DEPTH 5
+
+/*
  * High level description of the alpha-beta pruning:
  * Property after pruning:
  *      --  MAX node must be smaller than all the child MAX nodes
@@ -21,25 +35,7 @@ extern int search_depth;
 extern int ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c;
 
 
-/*
- * ai is doing DFS (with certain cutoff criteria),
- * so we need this global variable in order to be able to rolling back
- */
-// extern std::stack<Board_Stat> ai_board_trace;
-
-/*
- * stopping criteria for search tree
- */
-// bool stop_search(int side, Board_Stat cur_bs);
-
-/*
- * evaluate cost based on current board configuration
- * evaluation is making use of the info in ai_board_trace
- * return
- *      high value if AI is gaining advantage
- *      low value if AI is put into disadvantage
- */
-// int eval_boad(int side, Board_Stat cur_bs);
+void ai_move(Board_Stat *bs);
 
 int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta);
 

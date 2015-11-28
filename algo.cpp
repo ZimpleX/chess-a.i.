@@ -1,18 +1,25 @@
 #include "algo.h"
 #include "rule.h"
 #include "util.h"
+#include <cstdlib>
+#include <string>
 
 using namespace std;
 
+int search_depth;
+int ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c;
+
 // #define DUMMY
 
-
+void init_ai_search(int &alpha, int &beta);
 void get_to_loc_radius(int role, int from_r, int from_c,
     int &to_r_lim0, int &to_r_lim1, int &to_c_lim0, int &to_c_lim1);
 
 
-
-void Board_Stat::ai_move() {
+/**************************
+ *     called by main     *
+ **************************/
+void ai_move(Board_Stat *bs) {
 #ifdef DUMMY
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
@@ -23,7 +30,7 @@ void Board_Stat::ai_move() {
             get_to_loc_radius(role, r, c, to_r_lim0, to_r_lim1, to_c_lim0, to_c_lim1);
             for (int rr = to_r_lim0; rr <= to_r_lim1; rr++) {
                 for (int cc = to_c_lim0; cc <= to_c_lim1; cc++) {
-                    if (this->player_move(r, c, rr, cc)) { 
+                    if (bs.player_move(r, c, rr, cc)) { 
                         // break
                         r = 8;
                         c = 8;
@@ -35,10 +42,15 @@ void Board_Stat::ai_move() {
         }
     }
 #else
-    // push initial state to stack
+    int alpha;
+    int beta;
+    init_ai_search(alpha, beta);
+    int chosen_cost = ai_pre_move(*bs, AI, alpha, beta);
+    bs->player_move(ai_next_start_r, ai_next_start_c, 
+            ai_next_end_r, ai_next_end_c);
+    cout << "A.I move:\n" << ai_next_start_r << ", " << ai_next_start_c << ", " << ai_next_end_r << ", " << ai_next_end_c << "\n";
 #endif
 }
-
 
 /**************************************
  *     skeleton of main algorithm     *
@@ -52,16 +64,17 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
     int cur_max = NEGA_INFINITY;    // for player return value
 
     search_depth ++;
-
-    if (cur_bs.terminate_test(side)) {
+    if (cur_bs.terminate_test()) {
         search_depth --;
-        return cur_bs.eval_board(side);
+        return cur_bs.eval_board();
     }
     
     int prune_stat; // indicating whether pruning has taken place
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
-            int role = cur_bs.get_piece(r, c) * AI;
+            int role = cur_bs.get_piece(r, c) * side;
+            if (role <= 0)
+                continue;
             switch (role) {
                 case KING:
                     prune_stat = sweep_king(cur_bs, side, r, c, 
@@ -87,8 +100,10 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
                     break;
                 case PAWN:
                     prune_stat = sweep_pawn(cur_bs, side, r, c,
-                            alpha, beta, cur_min, cur_max)
+                            alpha, beta, cur_min, cur_max);
                     break;
+                default:
+                    cout << "========\nshit\n=======\n";
             } // switch case end
             if (prune_stat != 0) {
                 search_depth --;
@@ -97,12 +112,10 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
         }
     }
     search_depth --;
-    if (side == AI) {
+    if (side == AI)
         return cur_max; //(hope to be less than alpha, or to update beta)
-    } else {
+    else
         return cur_min; //(hope to let parent AI to update alpha, or to be less than beta)
-    }
-
 }
 
 /**************************************
@@ -145,10 +158,10 @@ void update_loc_minmax(int r, int c, int rr, int cc,
         ai_next_start_r = r;
         ai_next_start_c = c;
         ai_next_end_r = rr;
-        ai_next_start_c = cc;
+        ai_next_end_c = cc;
     }
-    cur_max = (cur_max > cur_cost) ? cur_max : cur_value;
-    cur_min = (cur_min < cur_cost) ? cur_min : cur_value;
+    cur_max = (cur_max > cur_cost) ? cur_max : cur_cost;
+    cur_min = (cur_min < cur_cost) ? cur_min : cur_cost;
 }
 
 /************************************************
@@ -293,6 +306,156 @@ int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c,
         }
     }
     return 0;
+}
+
+/**************************************/
+bool Board_Stat::terminate_test() {
+    if (search_depth >= SEARCH_DEPTH)
+        return true;
+    else 
+        return false;
+}
+
+/*
+ * evaluation function:
+ *      favors BLACK (AI), so it will be large if BLACK is gaining advantage
+ *
+ */
+int Board_Stat::eval_board() {
+    Piece_Count blk_count, wht_count;
+    piece_count(&blk_count, &wht_count);
+
+    int w_pawn_double, b_pawn_double;
+    int w_pawn_backwd, b_pawn_backwd;
+    int w_pawn_isoltd, b_pawn_isoltd;
+    pawn_pattern(w_pawn_double, b_pawn_double, w_pawn_backwd, b_pawn_backwd, w_pawn_isoltd, b_pawn_isoltd);
+
+    int w_mob, b_mob;
+    eval_mobility(w_mob, b_mob);
+
+    return KK*(blk_count.num_k-wht_count.num_k)
+         + KQ*(blk_count.num_q-wht_count.num_q)
+         + KR*(blk_count.num_r-wht_count.num_r)
+         + KB*(blk_count.num_b-wht_count.num_b)
+         + KN*(blk_count.num_n-wht_count.num_n)
+         + KP*(blk_count.num_p-wht_count.num_p)
+         + KP_SPEC*(b_pawn_double+b_pawn_backwd+b_pawn_isoltd-w_pawn_double-w_pawn_backwd-w_pawn_isoltd)
+         + KMOBILITY*(b_mob, w_mob);
+}
+
+void Board_Stat::piece_count(Piece_Count *blk_count, Piece_Count *wht_count) {
+    for (int r = 0; r <= 7; r++) {
+        for (int c = 0; c <= 7; c++) {
+            if (board_stat[r][c] == EMPTY)
+                continue;
+            Piece_Count *count;
+            if ((board_stat[r][c]*BLACK) > 0) {
+                count = blk_count;
+            } else {
+                count = wht_count;
+            }
+            int role = abs(board_stat[r][c]);
+            switch(role) {
+                case KING:
+                    (count->num_k)++;
+                    break;
+                case QUEEN:
+                    (count->num_q)++;
+                    break;
+                case ROOK:
+                    (count->num_r)++;
+                    break;
+                case BISHOP:
+                    (count->num_b)++;
+                    break;
+                case KNIGHT:
+                    (count->num_n)++;
+                    break;
+                case PAWN:
+                    (count->num_p)++;
+                    break;
+            }
+        }
+    }
+}
+
+
+void Board_Stat::pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &b_backwd, int &w_isoltd, int &b_isoltd) {
+    w_double = 0;
+    b_double = 0;
+    w_backwd = 0;
+    b_backwd = 0;
+    w_isoltd = 0;
+    b_isoltd = 0;
+    for (int r = 0; r <= 7; r ++) {
+        for (int c = 0; c <= 7; c++) {
+            if (abs(board_stat[r][c]) != PAWN)
+                continue;
+            int side = (board_stat[r][c]*BLACK > 0) ? BLACK : WHITE;
+            int *dbl = (side==BLACK) ? (&b_double) : (&w_double);
+            *dbl += pawn_double(side, r, c);
+            int *bk = (side==BLACK) ? (&b_backwd) : (&w_backwd);
+            *bk += pawn_backwd(side, r, c);
+            int *iso = (side==BLACK) ? (&b_isoltd) : (&w_isoltd);
+            *iso += pawn_isoltd(side, r, c);
+        }
+    }
+    w_double /= 2;
+    b_double /= 2;
+    w_backwd /= 2;
+    b_backwd /= 2;
+    w_isoltd /= 2;
+    b_isoltd /= 2;
+}
+
+void Board_Stat::eval_mobility(int &w_mob, int &b_mob) {
+    w_mob = 0;
+    b_mob = 0;
+    int *mob;
+    for (int r = 0; r <= 7; r ++) {
+        for (int c = 0; c <= 7; c++) {
+            if (board_stat[r][c] == EMPTY)
+                continue;
+            int side = ((board_stat[r][c]*BLACK) > 0) ? BLACK : WHITE;
+            mob = (side==BLACK) ? (&b_mob) : (&w_mob);
+            int role = abs(board_stat[r][c]);
+            switch(role) {
+                case KING:
+                    *mob += mob_king(side, r, c);
+                    break;
+                case QUEEN:
+                    *mob += mob_straight(side, r, c);
+                    *mob += mob_diagnal(side, r, c);
+                    break;
+                case ROOK:
+                    *mob += mob_straight(side, r, c);
+                    break;
+                case BISHOP:
+                    *mob += mob_diagnal(side, r, c);
+                    break;
+                case KNIGHT:
+                    *mob += mob_knight(side, r, c);
+                    break;
+                case PAWN:
+                    *mob += mob_pawn(side, r, c);
+                    break;
+            }
+        }
+    }
+}
+
+
+/**************************************/
+void init_ai_search(int &alpha, int &beta) {
+    search_depth = 0;
+
+    ai_next_start_r = INVALID;
+    ai_next_start_c = INVALID;
+    ai_next_end_r = INVALID;
+    ai_next_end_c = INVALID;
+
+    alpha = NEGA_INFINITY;
+    beta = POSI_INFINITY;
 }
 
 

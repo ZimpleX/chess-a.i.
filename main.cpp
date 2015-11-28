@@ -42,7 +42,7 @@ int main() {
         } else {
             int ai_side = (PLAYER == BLACK) ? WHITE:BLACK;
             // no need to check validity here
-            bs.ai_move(ai_side);
+            ai_move(&bs);
             cout << bs;
         }
         is_player_move = !is_player_move;

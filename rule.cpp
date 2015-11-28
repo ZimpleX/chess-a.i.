@@ -40,16 +40,16 @@ bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
                 return false;
             break;
         case QUEEN:
-            if (!check_straight(start_r, start_c, end_r, end_c)
-             && !check_diagnal(start_r, start_c, end_r, end_c))
+            if (!player_chk_straight(start_r, start_c, end_r, end_c)
+             && !player_chk_diagnal(start_r, start_c, end_r, end_c))
                 return false;
             break;
         case ROOK:
-            if (!check_straight(start_r, start_c, end_r, end_c))
+            if (!player_chk_straight(start_r, start_c, end_r, end_c))
                 return false;
             break;
         case BISHOP:
-            if (!check_diagnal(start_r, start_c, end_r, end_c))
+            if (!player_chk_diagnal(start_r, start_c, end_r, end_c))
                 return false;
             break;
         case KNIGHT:
@@ -77,7 +77,7 @@ bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
 /*
  * Util functions to enforce the chess rule
  */
-bool Board_Stat::check_straight(int start_r, int start_c, int end_r, int end_c) {
+bool Board_Stat::player_chk_straight(int start_r, int start_c, int end_r, int end_c) {
     if (start_r == end_r) {
         int c_s = (start_c < end_c) ? start_c : end_c;
         int c_e = (start_c > end_c) ? start_c : end_c;
@@ -99,7 +99,7 @@ bool Board_Stat::check_straight(int start_r, int start_c, int end_r, int end_c) 
 }
 
 
-bool Board_Stat::check_diagnal(int start_r, int start_c, int end_r, int end_c) {
+bool Board_Stat::player_chk_diagnal(int start_r, int start_c, int end_r, int end_c) {
     if (abs(start_r - end_r) != abs(start_c - end_c))
         return false;
     int kr = (start_r < end_r) ? 1 : -1;
@@ -116,9 +116,9 @@ bool Board_Stat::check_diagnal(int start_r, int start_c, int end_r, int end_c) {
  * special rule for pawn: en-passant / taking / non-taking / promote
  */
 bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c) {
+    new_enpassant_c = INVALID;
     int dr = start_r - end_r;
     int dc = start_c - end_c;
-    bool is_enpassant;       // check first if this move will do the enpassant
     ///////////////
     //  check x  //
     ///////////////
@@ -196,10 +196,151 @@ bool Board_Stat::ai_direct_move(int r_s, int c_s, int r_e, int c_e) {
  * Unlike the ai_direct_move function, ai_pawn_move will make stricter check
  */
 bool Board_Stat::ai_pawn_move(int r_s, int c_s, int r_e, int c_e) {
-
+    if (board_stat[r_s][c_s]*board_stat[r_e][c_e] > 0)
+        return false;
+    int new_enpassant_c;
+    int side = (board_stat[r_s][c_s]*BLACK > 0) ? BLACK : WHITE;
+    if (!check_pawn(r_s, c_s, r_e, c_e, side, new_enpassant_c))
+        return false;
+    enpassant_c = new_enpassant_c;
+    board_stat[r_e][c_e] = board_stat[r_s][c_s];
+    board_stat[r_s][c_s] = EMPTY;
+    return true;
 }
 
 
+/*****************************************/
+int Board_Stat::mob_king(int side, int r, int c) {
+    int ctr = 0;
+
+    int r_s = (r>0)?(r-1):0;
+    int r_e = (r<7)?(r+1):7;
+    int c_s = (c>0)?(c-1):0;
+    int c_e = (c<7)?(c+1):7;
+
+    for (int rr=r_s; rr<=r_e; rr++) {
+        for (int cc=c_s; cc<=c_e; cc++) {
+            if (board_stat[rr][cc]*side > 0)
+                continue;
+            ctr++;
+        }
+    }
+
+    return ctr;
+}
+
+int Board_Stat::mob_knight(int side, int r, int c) {
+    int ctr = 0;
+
+    for (int dir = -1; dir <= 1; dir += 2) {
+        for (int off_r = 1; off_r <= 2; off_r ++) {
+            int rr = r + dir*off_r;
+            if (rr > 7 || rr < 0)
+                continue;
+            int off_c = 2 / off_r;
+            for (int kc = -1; kc <= 1; kc += 2) {
+                int cc = c + kc*off_c;
+                if (cc > 7 || cc <0)
+                    continue;
+                if (board_stat[rr][cc]*side > 0)
+                    continue;
+                ctr++;
+            }
+        }
+    }
+
+    return ctr;
+}
+
+int Board_Stat::mob_pawn(int side, int r, int c) {
+    int ctr = 0;
+    
+    int kr = (side==BLACK) ? -1 : 1;
+    int cc = c;
+    int rr = r+kr;
+    // don't care about 2 step forward
+    if (rr>=0 && rr<=7 && board_stat[rr][cc] == EMPTY)
+        ctr++;
+    rr = r+kr;
+    cc = c+1;
+    // don't care about enpassant
+    if (rr>=0 && rr<=7 && cc>=0 && cc<=7 && board_stat[r][c]*board_stat[rr][cc]<0)
+        ctr++;
+    cc = c-1;
+    if (rr>=0 && rr<=7 && cc>=0 && cc<=7 && board_stat[r][c]*board_stat[rr][cc]<0)
+        ctr++;
+    return ctr;
+}
+
+int Board_Stat::mob_straight(int side, int r, int c) {
+    int ctr = 0;
+
+    for (int kr = -1; kr <= 1; kr ++) {
+        for (int kc = -1; kc <= 1; kc++) {
+            if (kr*kc != 0)
+                continue;
+            for (int d = 1; d <= 7; d++) {
+                int rr = r + kr*d;
+                int cc = c + kc*d;
+                if (rr < 0 || rr > 7
+                 || cc < 0 || cc > 7)
+                    break;
+                if (board_stat[rr][cc]*side > 0) {
+                    break;
+                } else if (board_stat[rr][cc]*side < 0) {
+                    ctr++;
+                    break;
+                } else {
+                    ctr++;
+                }
+
+            }
+        }
+    }
+
+    return ctr;
+}
+
+int Board_Stat::mob_diagnal(int side, int r, int c) {
+    int ctr = 0;
+
+    for (int kr = -1; kr <= 1; kr += 2) {
+        for (int kc = -1; kc <= 1; kc += 2) {
+            for (int d = 1; d <= 7; d++) {
+                int rr = r + kr*d;
+                int cc = c + kc*d;
+                if (rr < 0 || cc < 0 
+                 || rr > 7 || cc > 7)
+                    break;
+                if (board_stat[rr][cc]*side > 0) {
+                    break;
+                } else if (board_stat[rr][cc]*side < 0) {
+                    ctr++;
+                    break;
+                } else {
+                    ctr++;
+                }
+            }
+        }
+    }
+
+    return ctr;
+}
+
+/*****************************************/
+int Board_Stat::pawn_double(int side, int r, int c) {
+    return 0;
+}
+
+int Board_Stat::pawn_backwd(int side, int r, int c) {
+    return 0;
+}
+
+int Board_Stat::pawn_isoltd(int side, int r, int c) {
+    return 0;
+}
+
+/*****************************************/
 /*
  * Getter and setter
  */
