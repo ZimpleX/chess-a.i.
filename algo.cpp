@@ -39,6 +39,10 @@ void Board_Stat::ai_move() {
 #endif
 }
 
+
+/**************************************
+ *     skeleton of main algorithm     *
+ **************************************/
 /*
  * alpha: initial NEGA_INFINITY --> AI side (MAX)
  * beta: initial POSI_INFINITY  --> player side (MIN)
@@ -46,116 +50,49 @@ void Board_Stat::ai_move() {
 int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
     int cur_min = POSI_INFINITY;    // for AI return value
     int cur_max = NEGA_INFINITY;    // for player return value
-    search_depth ++;
-    Board_Stat moved_bs = cur_bs;
 
-    if (cur_bs.stop_search()) {
+    search_depth ++;
+
+    if (cur_bs.terminate_test(side)) {
         search_depth --;
         return cur_bs.eval_board(side);
     }
     
     int prune_stat; // indicating whether pruning has taken place
-    int op_side = (side==BLACK) ? WHITE : BLACK;
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             int role = cur_bs.get_piece(r, c) * AI;
             switch (role) {
                 case KING:
-                    int r_s = (r>0)?(r-1):0;
-                    int r_e = (r<7)?(r+1):7;
-                    int c_s = (c>0)?(c-1):0;
-                    int c_e = (c<7)?(c+1):7;
-                    for (int rr=r_s; rr<=r_e; rr++) {
-                        for (int cc=c_s; cc<=c_e; cc++) {
-                            // move king
-                            if(!moved_bs.ai_direct_move())
-                                continue;
-                            int cur_cost = ai_pre_move(moved_bs, op_side, alpha, beta);
-                            
-                            prune_stat = ab_pruning(side, cur_cost, alpha, beta);
-                            if (prune_stat != 0) {
-                                search_depth --;
-                                return prune_stat;
-                            }
-                            update_loc_minmax(r, c, rr, cc, cur_cost, cur_min, cur_max);
-                            moved_bs = cur_bs;
-                       }
-                    }
+                    prune_stat = sweep_king(cur_bs, side, r, c, 
+                            alpha, beta, cur_min, cur_max);
                     break;
                 case QUEEN:
-                    prune_stat = sweep_straight(cur_bs, side, r, c, alpha, beta, cur_min, cur_max);
-                    if (prune_stat != 0) {
-                        search_depth --;
-                        return prune_stat;
-                    }
-                    prune_stat = sweep_diagonal(cur_bs, side, r, c, alpha, beta, cur_min, cur_max);
-                    if (prune_stat != 0) {
-                        search_depth --;
-                        return prune_stat;
-                    }
+                    prune_stat = sweep_straight(cur_bs, side, r, c, 
+                            alpha, beta, cur_min, cur_max);
+                    prune_stat = sweep_diagonal(cur_bs, side, r, c, 
+                            alpha, beta, cur_min, cur_max);
                     break;
                 case ROOK:
-                    // wrapper for a bunch of pre_move of current board status
-                    prune_stat = sweep_straight(cur_bs, side, r, c, alpha, beta, cur_min, cur_max);
-                    if (prune_stat != 0) {
-                        search_depth --;
-                        return prune_stat;
-                    }
+                    prune_stat = sweep_straight(cur_bs, side, r, c, 
+                            alpha, beta, cur_min, cur_max);
                     break;
                 case BISHOP:
-                    prune_stat = sweep_diagonal(cur_bs, side, r, c, alpha, beta, cur_min, cur_max);
-                    if (prune_stat != 0) {
-                        search_depth --;
-                        return prune_stat;
-                    }
+                    prune_stat = sweep_diagonal(cur_bs, side, r, c, 
+                            alpha, beta, cur_min, cur_max);
                     break;
                 case KNIGHT:
-                    for (int dir = -1; dir <=1; dir += 2) {
-                        for (int off_r = 1; off_r <= 2; off_r ++) {
-                            int rr = r + dir*off_r;
-                            if (rr > 7 || rr < 0)
-                                continue;
-                            int off_c = 2 / off_r;
-                            for (int kc = -1; kc <= 1; kc += 2) {
-                                int cc = c + kc*off_c;
-                                if (cc > 7 || cc < 0)
-                                    continue;
-                                if (!moved_bs.ai_direct_move(rr, cc))
-                                    continue;
-                                int cur_cost = ai_pre_move(moved_bs, op_side, alpha, beta);
-                                prune_stat = ab_pruning(side, cur_cost, alpha, beta);
-                                if (prune_stat != 0) {
-                                    search_depth --;
-                                    return prune_stat;
-                                }
-                                update_loc_minmax(r, c, rr, cc, cur_cost, cur_min, cur_max);
-                                moved_bs = cur_bs;
-                            }
-                        }
-                    }
+                    prune_stat = sweep_knight(cur_bs, side, r, c,
+                            alpha, beta, cur_min, cur_max);
                     break;
                 case PAWN:
-                    int r_s = (r>1)?(r-2):0;
-                    int r_e = (r<6)?(r+2):7;
-                    int c_s = (c>0)?(c-1):0;
-                    int c_e = (c<7)?(c+1):7;
-                    for (int rr=r_s; rr<=r_e; rr++) {
-                        for (int cc=c_s; cc<=c_e; cc++) {
-                            // move pawn
-                            if(!moved_bs.ai_pawn_move())
-                                continue;
-                            int cur_cost = ai_pre_move(moved_bs, op_side, alpha, beta);
-                            
-                            prune_stat = ab_pruning(side, cur_cost, alpha, beta);
-                            if (prune_stat != 0) {
-                                search_depth --;
-                                return prune_stat;
-                            }
-                            update_loc_minmax(r, c, rr, cc, cur_cost, cur_min, cur_max);
-                            moved_bs = cur_bs;
-                       }
-                    }
+                    prune_stat = sweep_pawn(cur_bs, side, r, c,
+                            alpha, beta, cur_min, cur_max)
                     break;
+            } // switch case end
+            if (prune_stat != 0) {
+                search_depth --;
+                return prune_stat;
             }
         }
     }
@@ -168,6 +105,9 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
 
 }
 
+/**************************************
+ *     update important variables     *
+ **************************************/
 
 /*
  * Main body of alpha-beta pruning, update alpha beta accordingly
@@ -211,42 +151,127 @@ void update_loc_minmax(int r, int c, int rr, int cc,
     cur_min = (cur_min < cur_cost) ? cur_min : cur_value;
 }
 
+/************************************************
+ *      expand tree for specific piece type     *
+ ************************************************/
+/*
+ * Core part to do pruning or recursion --> common to all sweep_* functions
+ */
+int core_prune_recursion(Board_Stat *moved_bs, 
+        int side, int r, int c, int rr, int cc, 
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    int op_side = (side==BLACK)?WHITE:BLACK;
+    int cur_cost = ai_pre_move(*moved_bs, op_side, alpha, beta);
+    int prune_stat = ab_pruning(side, cur_cost, alpha, beta);
+    update_loc_minmax(r, c, rr, cc, cur_cost, cur_min, cur_max);
+    return prune_stat;
+}
 
 /*
  * return prune_stat
  */
-int sweep_straight(Board_Stat cur_bs, int side, int r, int c) {
+int sweep_king(Board_Stat cur_bs, int side, int r, int c,
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    int r_s = (r>0)?(r-1):0;
+    int r_e = (r<7)?(r+1):7;
+    int c_s = (c>0)?(c-1):0;
+    int c_e = (c<7)?(c+1):7;
     Board_Stat moved_bs = cur_bs;
-    // row
-    for (int rr = r; rr <= 7; rr++) {
-       if (cur_bs.get_piece(rr, c) * AI > 0)
-           break;
-       // move piece
-       // ai_pre_move()
-       // pop stack
-       if (cur_bs.get_piece(rr, c) != EMPTY) // a piece has been taken in the previous move
-           break;
+    for (int rr=r_s; rr<=r_e; rr++) {
+        for (int cc=c_s; cc<=c_e; cc++) {
+            // move king
+            if(!moved_bs.ai_direct_move(r, c, rr, cc))
+                continue;
+            int stat = core_prune_recursion(&moved_bs, side, r, c,
+                    rr, cc, alpha, beta, cur_min, cur_max);
+            if (stat != 0)
+                return stat;
+            moved_bs = cur_bs;
+       }
     }
-    for (int rr = r; rr >= 0; rr--) {
-        
-    }
-    // column
-    for (int cc = c; cc <= 7; cc++) {
-        if (cur_bs.get_piece(r, cc) * AI > 0)
-            break;
-        // move piece
-        // push stack
-        // ai_pre_move()
-        // pop stack
-        if (cur_bs.get_piece(r, cc) != EMPTY)
-            break;
-    }
-    for (int cc = c; cc >= 0; cc--) {
-
-    }
+    return 0;
 }
 
-int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c) {
+int sweep_knight(Board_Stat cur_bs, int side, int r, int c,
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    Board_Stat moved_bs = cur_bs;
+    for (int dir = -1; dir <=1; dir += 2) {
+        for (int off_r = 1; off_r <= 2; off_r ++) {
+            int rr = r + dir*off_r;
+            if (rr > 7 || rr < 0)
+                continue;
+            int off_c = 2 / off_r;
+            for (int kc = -1; kc <= 1; kc += 2) {
+                int cc = c + kc*off_c;
+                if (cc > 7 || cc < 0)
+                    continue;
+                if (!moved_bs.ai_direct_move(r, c, rr, cc))
+                    continue;
+                int stat = core_prune_recursion(&moved_bs, side, r, c,
+                        rr, cc, alpha, beta, cur_min, cur_max);
+                if (stat != 0)
+                    return stat;
+                moved_bs = cur_bs;
+            }
+        }
+    }
+    return 0;
+}
+
+int sweep_pawn(Board_Stat cur_bs, int side, int r, int c,
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    int r_s = (r>1)?(r-2):0;
+    int r_e = (r<6)?(r+2):7;
+    int c_s = (c>0)?(c-1):0;
+    int c_e = (c<7)?(c+1):7;
+    Board_Stat moved_bs = cur_bs;
+    for (int rr=r_s; rr<=r_e; rr++) {
+        for (int cc=c_s; cc<=c_e; cc++) {
+            // move pawn
+            if(!moved_bs.ai_pawn_move(r, c, rr, cc))
+                continue;
+            int stat = core_prune_recursion(&moved_bs, side, r, c,
+                    rr, cc, alpha, beta, cur_min, cur_max);
+            if (stat != 0)
+                return stat;
+            moved_bs = cur_bs;
+       }
+    }
+    return 0;
+}
+
+int sweep_straight(Board_Stat cur_bs, int side, int r, int c, 
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    Board_Stat moved_bs = cur_bs;
+    for (int kr = -1; kr <= 1; kr ++) {
+        for (int kc = -1; kc <= 1; kc ++) {
+            if (kr * kc != 0)
+                continue;
+            for (int d = 1; d <= 7; d ++) {
+                int rr = r + kr*d;
+                int cc = c + kc*d;
+                if (rr < 0 || rr > 7
+                 || cc < 0 || cc > 7)
+                    break;
+                if (!moved_bs.ai_direct_move(r, c, rr, cc))
+                    break;
+                int stat = core_prune_recursion(&moved_bs, side, r, c,
+                        rr, cc, alpha, beta, cur_min, cur_max);
+                if (stat != 0)
+                    return stat;
+                moved_bs = cur_bs;
+                if (cur_bs.get_piece(rr, cc) != EMPTY) // a piece has been taken in the previous move
+                    break;
+
+            }
+        }
+    }
+    return 0;
+}
+
+int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c,
+        int &alpha, int &beta, int &cur_min, int &cur_max) {
+    Board_Stat moved_bs = cur_bs;
     for (int kr = -1; kr <= 1; kr += 2) {
         for (int kc = -1; kc <= 1; kc += 2) {
             for (int d = 1; d <=7; d++) {
@@ -255,19 +280,25 @@ int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c) {
                 if (rr < 0 || cc < 0
                  || rr > 7 || cc > 7)
                     break;
-                if (cur_bs.get_piece(rr, cc) * AI > 0)
+                if (!moved_bs.ai_direct_move(r, c, rr, cc))
                     break;
-                // move piece
-                // push stack
-                // ai_pre_move
-                // pop stack
-                if (cur_bs.get_piece(rr, cc) != EMPTY)
+                int stat = core_prune_recursion(&moved_bs, side, r, c,
+                        rr, cc, alpha, beta, cur_min, cur_max);
+                if (stat != 0)
+                    return stat;
+                moved_bs = cur_bs;
+                if (cur_bs.get_piece(rr, cc) != EMPTY) // a piece has been taken in the previous move
                     break;
             }
         }
     }
+    return 0;
 }
 
+
+/**********
+ * DUMMY
+ */
 /*
  * get the limit for search "to" location, based on role and from_r, from_c.
  * return:

@@ -70,7 +70,10 @@ public:
     // the actual move function, have to be used with ai_pre_move
     bool ai_direct_move(int r_s, int c_s, int r_e, int c_e);
     bool ai_pawn_move(int r_s, int c_s, int r_e, int c_e);
-
+    
+    // algo-related
+    bool terminate_test(int side);
+    int eval_board(int side);
     // getter and setter
     bool get_is_terminate();
     int get_piece(int r, int c);

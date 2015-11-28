@@ -184,7 +184,12 @@ bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int 
  *      --  update board_stat
  */
 bool Board_Stat::ai_direct_move(int r_s, int c_s, int r_e, int c_e) {
-
+    if (board_stat[r_s][c_s] * board_stat[r_e][c_e] > 0)
+        return false;
+    enpassant_c = INVALID;
+    board_stat[r_e][c_e] = board_stat[r_s][c_s];
+    board_stat[r_s][c_s] = EMPTY;
+    return true;
 }
 
 /*
