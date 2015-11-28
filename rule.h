@@ -19,6 +19,7 @@
 
 #define INIT_MOVE BLACK
 #define PLAYER WHITE
+#define AI BLACK
 
 #define INVALID -1
 
@@ -48,6 +49,13 @@ private:
      *      and is set to be INVALID by the opponent move immediately after
      */
     int enpassant_c;
+
+    // checking funtions: to be used with palyer_move()
+    bool check_straight(int start_r, int start_c, int end_r, int end_c);
+    bool check_diagnal(int start_r, int start_c, int end_r, int end_c);
+
+    bool check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c);
+
 public:
     Board_Stat(int init[8][8]);
     /*
@@ -57,8 +65,13 @@ public:
      *      false: if the move is illegal
      * if the king is dead, set is_terminate to true
      */
-    bool move(int start_r, int start_c, int end_r, int end_c);
-    void ai_move(int ai_side);
+    bool player_move(int start_r, int start_c, int end_r, int end_c);
+    void ai_move();
+    // the actual move function, have to be used with ai_pre_move
+    bool ai_direct_move(int r_s, int c_s, int r_e, int c_e);
+    bool ai_pawn_move(int r_s, int c_s, int r_e, int c_e);
+
+    // getter and setter
     bool get_is_terminate();
     int get_piece(int r, int c);
 

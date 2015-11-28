@@ -32,7 +32,7 @@ int main() {
                 if (check_boarder(from_r, from_c)
                  && check_boarder(to_r, to_c)
                  && (bs.get_piece(from_r, from_c)*PLAYER) > 0
-                 && bs.move(from_r, from_c, to_r, to_c)) {
+                 && bs.player_move(from_r, from_c, to_r, to_c)) {
                     cout << bs;
                     move_valid = true;
                 } else {
