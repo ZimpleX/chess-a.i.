@@ -413,12 +413,8 @@ void Board_Stat::pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &
             *iso += pawn_isoltd(side, r, c);
         }
     }
-    w_double /= 2;
+    w_double /= 2;  // double pawn will be double counted
     b_double /= 2;
-    w_backwd /= 2;
-    b_backwd /= 2;
-    w_isoltd /= 2;
-    b_isoltd /= 2;
 }
 
 // count number of valid move of both sides

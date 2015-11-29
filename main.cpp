@@ -41,8 +41,8 @@ int main() {
                      << "| from_row   from_column   to_row   to_column \\\n";
                 cin >> from_r >> from_c >> to_r >> to_c;
                 cout << "\\_____________________________________________/\n";
-                if (check_boarder(from_r, from_c)
-                 && check_boarder(to_r, to_c)
+                if (check_border(from_r, from_c)
+                 && check_border(to_r, to_c)
                  && (bs.get_piece(from_r, from_c)*PLAYER) > 0
                  && bs.player_move(from_r, from_c, to_r, to_c)) {
                     print_board_move(bs, PLAYER, from_r, from_c, to_r, to_c);
@@ -58,6 +58,7 @@ int main() {
             ai_move(&bs);
             print_board_move(bs, AI, ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c);
         }
+        print_check(bs);
         is_player_move = !is_player_move;
     }
 

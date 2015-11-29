@@ -256,7 +256,7 @@ int Board_Stat::mob_knight(int side, int r, int c) {
             int off_c = 2 / off_r;
             for (int kc = -1; kc <= 1; kc += 2) {
                 int cc = c + kc*off_c;
-                if (cc > 7 || cc <0)
+                if (cc > 7 || cc < 0)
                     continue;
                 if (board_stat[rr][cc]*side > 0)
                     continue;
@@ -306,8 +306,7 @@ int Board_Stat::mob_straight(int side, int r, int c) {
             for (int d = 1; d <= 7; d++) {
                 int rr = r + kr*d;
                 int cc = c + kc*d;
-                if (rr < 0 || rr > 7
-                 || cc < 0 || cc > 7)
+                if (!check_border(rr, cc))
                     break;
                 if (board_stat[rr][cc]*side > 0) {
                     break;
@@ -338,8 +337,7 @@ int Board_Stat::mob_diagnal(int side, int r, int c) {
             for (int d = 1; d <= 7; d++) {
                 int rr = r + kr*d;
                 int cc = c + kc*d;
-                if (rr < 0 || cc < 0 
-                 || rr > 7 || cc > 7)
+                if (!check_border(rr, cc))
                     break;
                 if (board_stat[rr][cc]*side > 0) {
                     break;
@@ -361,19 +359,153 @@ int Board_Stat::mob_diagnal(int side, int r, int c) {
  *     check pawn special pattern    *
  *************************************/
 int Board_Stat::pawn_double(int side, int r, int c) {
+    int cc = c;
+    for (int rr = 0; rr <= 7; rr++) {
+        if (rr == r)
+            continue;
+        if (board_stat[r][c]*board_stat[rr][cc] == PAWN*PAWN)
+            return 1;
+    }
     return 0;
 }
 
 int Board_Stat::pawn_backwd(int side, int r, int c) {
+
     return 0;
 }
 
 int Board_Stat::pawn_isoltd(int side, int r, int c) {
-    return 0;
+    int cc;
+    if (c > 0) {
+        cc = c-1;
+        for (int rr = r-1; rr <= r+1; rr++) {
+            if (rr>7 || rr<0)
+                continue;
+            if (board_stat[rr][cc]*board_stat[r][c] == PAWN*PAWN)
+                return 0;
+        }
+    }
+    if (c < 7) {
+        cc = c-1;
+        for (int rr = r-1; rr <= r+1; rr++) {
+            if (rr>7 || rr<0)
+                continue;
+            if (board_stat[rr][cc]*board_stat[r][c] == PAWN*PAWN)
+                return 0;
+        }
+    }
+    return 1;
 }
 
 
-
+/*
+ * true if [opposite side] is checking [side]
+ */
+bool Board_Stat::is_in_check(int side) {
+    int r = 0;
+    int c = 0;
+    for (int rr = 0; rr <= 7; rr++) {
+        for (int cc = 0; cc <= 7; cc++) {
+            if (board_stat[rr][cc]*side == KING) {
+                r = rr;
+                c = cc;
+                break;
+            }
+        }
+    }
+    if (board_stat[r][c]*side != KING)  // just in case
+        return false;
+    // check from 8 directions & 4 corners of knight
+    // straight
+    for (int kr = -1; kr <= 1; kr++) {
+        for (int kc = -1; kc <= 1; kc++) {
+            if (kr*kc != 0)
+                continue;
+            for (int d = 1; d <= 7; d++) {
+                int rr = r + kr*d;
+                int cc = c + kc*d;
+                if (!check_border(rr, cc))
+                    break;
+                if (board_stat[rr][cc]*side < 0) {
+                    int role = abs(board_stat[rr][cc]);
+                    switch(role) {
+                        case KING:
+                            if (d == 1)
+                                return true;
+                            break;
+                        case QUEEN:
+                            return true;
+                            break;
+                        case ROOK:
+                            return true;
+                            break;
+                        case BISHOP:
+                            break;
+                        case KNIGHT:
+                            break;
+                        case PAWN:
+                            break;
+                    } 
+                    break;
+                } else if (board_stat[rr][cc]*side > 0) {
+                    break;
+                }
+            }
+        }
+    }
+    // check diagnal
+    for (int kr = -1; kr <= 1; kr += 2) {
+        for (int kc = -1; kc <= 1; kc += 2) {
+            for (int d = 1; d <= 7; d++) {
+                int rr = r + kr*d;
+                int cc = c + kc*d;
+                if (!check_border(rr, cc))
+                    break;
+                if (board_stat[rr][cc]*side < 0){
+                    int role = abs(board_stat[rr][cc]);
+                    switch (role) {
+                        case KING:
+                            if (d == 1)
+                                return true;
+                            break;
+                        case QUEEN:
+                            return true;
+                        case ROOK:
+                            break;
+                        case BISHOP:
+                            return true;
+                        case KNIGHT:
+                            break;
+                        case PAWN:
+                            // BLACK = -1 and is at the top of the board
+                            if (side*kr > 0 && d == 1)
+                               return true;
+                            break; 
+                    }
+                } else if (board_stat[rr][cc]*side > 0) {
+                    break;
+                } 
+            }
+        }
+    }
+    // check knight
+    for (int dir = -1; dir <= 1; dir += 2) {
+        for (int off_r = 1; off_r <= 2; off_r ++) {
+            int rr = r + dir*off_r;
+            if (rr > 7 || rr < 0)
+                continue;
+            int off_c = 2 / off_r;
+            for (int kc = -1; kc <= 1; kc += 2) {
+                int cc = c + kc*off_c;
+                if (cc > 7 || cc < 0)
+                    continue;
+                if (board_stat[rr][cc]*side == -1*KNIGHT)
+                    return true;
+            }
+        }
+    }
+    return false;
+}
 
 /**************************
  *  Getter / constructor  *
@@ -396,9 +528,4 @@ int Board_Stat::get_piece(int r, int c) {
     return board_stat[r][c];
 }
 
-bool check_boarder(int r, int c) {
-    if (r > 7 || r < 0 || c > 7 || c < 0)
-        return false;
-    else 
-        return true;
-}
+

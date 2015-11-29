@@ -92,3 +92,18 @@ void print_board_move(Board_Stat bs, int side, int r, int c, int rr, int cc) {
     cout << bs;
     cout << "\n\n\n";
 }
+
+bool check_border(int r, int c) {
+    if (r > 7 || r < 0 || c > 7 || c < 0)
+        return false;
+    else 
+        return true;
+}
+
+
+void print_check(Board_Stat bs) {
+    if (bs.is_in_check(AI))
+        cout << "\n\n   >>>> A.I. is CHECKED !!! <<<<\n\n";
+    else if (bs.is_in_check(PLAYER))
+        cout << "\n\n   >>>> PLAYER is CHECKED !!! <<<<\n\n";
+}

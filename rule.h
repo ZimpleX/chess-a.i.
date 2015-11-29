@@ -50,8 +50,6 @@ struct Piece_Count {
     }
 };
 
-// util function checking if index is out of the chess board
-bool check_boarder(int r, int c);
 
 
 /*
@@ -99,7 +97,7 @@ public:
     // a.i. move function, *HAVE TO* be used with ai_pre_move()
     bool ai_direct_move(int r_s, int c_s, int r_e, int c_e);
     bool ai_pawn_move(int r_s, int c_s, int r_e, int c_e);
-    
+    bool is_in_check(int side);
     // algo-related functions
     //   -- terminate_test: indicate when should the a.i. search stop
     //   -- eval_board: return cost function based on current board
