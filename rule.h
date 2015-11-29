@@ -50,7 +50,9 @@ struct Piece_Count {
     }
 };
 
-
+extern bool player_king_moved;
+extern bool player_rk1_moved;
+extern bool player_rk2_moved;
 
 /*
  * class about:
@@ -72,6 +74,7 @@ private:
     bool player_chk_straight(int start_r, int start_c, int end_r, int end_c);
     bool player_chk_diagnal(int start_r, int start_c, int end_r, int end_c);
     bool check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c);
+    bool check_castling(int start_r, int start_c, int end_r, int end_c, int side);
     // evaluation related functions:
     //   -- mobility is counting the num of valid choice of next move
     //   -- piece_count_weighted has already thought about coefficient

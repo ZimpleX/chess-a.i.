@@ -62,10 +62,21 @@ ostream& operator<< (ostream& os, const Board_Stat& bs) {
         if (r == 0) {
             comb_line = border_line+"\n"+format_line+"  Status\n";
         } else if (r == 1) {
-            char num_str[4];
-            sprintf(num_str, "%d", bs.enpassant_c);
-            comb_line = middle_line+"\n"+format_line+"     Enpassant pawn: "+num_str+"\n";
-        } else {
+            string checked;
+            Board_Stat bs_cp = bs;
+            if (bs_cp.is_in_check(AI))
+                checked = "A.I.";
+            else if (bs_cp.is_in_check(PLAYER))
+                checked = "PLAYER";
+            else
+                checked = "--";
+            comb_line = middle_line+"\n"+format_line+"     CHECKed: "+checked+"\n";
+        } else if (r == 2) {
+            int time = (int) ai_single_move_duration;
+            char t_str[10];
+            sprintf(t_str, "%d", time);
+            comb_line = middle_line+"\n"+format_line+"     AI Time: "+t_str+" sec\n";
+        }else {
             comb_line = middle_line+"\n"+format_line+"\n";
         }
         sprintf(line, comb_line.c_str(),

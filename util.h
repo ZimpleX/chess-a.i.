@@ -5,6 +5,7 @@
  *      - printing
  *      - debugging
  */
+extern double ai_single_move_duration;
 
 void print_board_move(Board_Stat bs, int side, int r, int c, int rr, int cc);
 

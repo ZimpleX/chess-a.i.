@@ -5,7 +5,9 @@
 
 using namespace std;
 
-
+bool player_king_moved = false;
+bool player_rk1_moved = false;
+bool player_rk2_moved = false;
 
 
 /*************************************
@@ -32,8 +34,11 @@ bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
     switch(role) {
         case KING:
             // Not implemented castling currently
-            if (abs(start_r - end_r) > 1 || abs(start_c - end_c) > 1)
-                return false;
+            if (abs(start_r - end_r) > 1 || abs(start_c - end_c) > 1) {
+                if (!check_castling(start_r, start_c, end_r, end_c, PLAYER))
+                    return false;
+            }
+            player_king_moved = true;
             break;
         case QUEEN:
             if (!player_chk_straight(start_r, start_c, end_r, end_c)
@@ -43,6 +48,10 @@ bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
         case ROOK:
             if (!player_chk_straight(start_r, start_c, end_r, end_c))
                 return false;
+            if (start_c == 0)
+                player_rk1_moved = true;
+            else if (start_c == 7)
+                player_rk2_moved = true;
             break;
         case BISHOP:
             if (!player_chk_diagnal(start_r, start_c, end_r, end_c))
@@ -114,7 +123,9 @@ bool Board_Stat::player_chk_diagnal(int start_r, int start_c, int end_r, int end
     return true;
 }
 
-/*
+/*************************
+ *     Special rules     *
+ *************************
  * special rule for pawn: 
  *      -- en-passant
  *      -- taking
@@ -173,6 +184,65 @@ bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int 
     
     return true;
 }
+
+/*
+ * special rule for castling
+ * --  KING has not moved
+ * --  ROOK has not moved
+ * --  no piece between KING and ROOK
+ * --  KING is not CHECKed before / through / after the castling 
+ */
+bool Board_Stat::check_castling(int start_r, int start_c, int end_r, int end_c, int side) {
+    int r = start_r;
+    int c = start_c;
+    int rr = end_r;
+    int cc = end_c;
+    if (abs(start_c-end_c) != 2 || start_r != end_r)
+        return false;
+    if (board_stat[r][c]*side != KING)
+        return false;
+    if (player_king_moved)
+        return false;
+    if (player_rk1_moved && (start_c > end_c))
+        return false;
+    if (player_rk2_moved && (start_c < end_c))
+        return false;
+    int s,e;
+    s = (start_c>end_c) ? 0 : start_c;
+    e = (start_c>end_c) ? start_c : 7;
+    for (int i = s+1; i < e; i++) {
+        if (board_stat[start_r][i] != EMPTY)
+            return false;
+    }
+    s = (start_c<end_c) ? start_c : end_c;
+    e = (start_c>end_c) ? start_c : end_c;
+    for (int i = s; i <= e; i++) {
+        // pseudo-move of king
+        board_stat[start_r][i] = side*KING;
+        if (is_in_check(side)) {
+            board_stat[start_r][i] = EMPTY;
+            board_stat[start_r][start_c] = side*KING;
+            return false;
+        }
+        board_stat[start_r][i] = EMPTY;
+    }
+    board_stat[start_r][start_c] = side*KING;
+
+    // get it ready for player move function
+    //      -- pre-move castle
+    //      -- reset the global variables
+    int rook_c_s = (start_c > end_c) ? 0 : 7;
+    int rook_c_e = (start_c > end_c) ? 3 : 5;
+    board_stat[start_r][rook_c_e] = board_stat[start_r][rook_c_s];
+    board_stat[start_r][rook_c_s] = EMPTY;
+    player_king_moved = true;
+    // doesn't matter to set both rook to be "moved"
+    // since there cannot be player castling any more
+    player_rk1_moved = true;
+    player_rk2_moved = true;
+    return true;
+}
+
 
 /*****************************************
  *    Move functions specific to A.I.    *

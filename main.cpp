@@ -6,10 +6,13 @@
 #include <cstdio>
 #include <string>
 #include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
 int board_stat[8][8];
+
+double ai_single_move_duration = -1;
 
 int main() {
     Board_Stat bs(NORMAL_BOARD);
@@ -32,6 +35,7 @@ int main() {
     bool is_player_move = (INIT_MOVE == PLAYER) ? true : false;
     while (!bs.get_is_terminate()) {
         if (is_player_move) {
+            ai_single_move_duration = -1;
             bool move_valid = false;
             while (!move_valid) {
                 int from_r, from_c, to_r, to_c;
@@ -52,10 +56,12 @@ int main() {
                 }
             }
         } else {
+            clock_t start = clock();
             cout << "\n    A.I is thinking ... \n\n";
             int ai_side = (PLAYER == BLACK) ? WHITE:BLACK;
             // no need to check validity here
             ai_move(&bs);
+            ai_single_move_duration = (clock() - start) / (double) CLOCKS_PER_SEC;
             print_board_move(bs, AI, ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c);
         }
         print_check(bs);
