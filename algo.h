@@ -28,7 +28,7 @@
 #define KP_SPEC -50
 #define KMOBILITY 10
 
-#define SEARCH_DEPTH 7
+#define SEARCH_DEPTH 6
 /*
  * cost matrix related to specific positions of the piece.
  * reference from: 
