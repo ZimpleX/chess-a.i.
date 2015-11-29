@@ -124,12 +124,12 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
  */
 int ab_pruning(int side, int cur_value, int &alpha, int &beta) {
     if (side == AI) {   // MAX node: alpha
-        if (cur_value > beta)
+        if (cur_value >= beta)
             return POSI_INFINITY;
         if (cur_value > alpha)
             alpha = cur_value;
     } else {            // MIN node: beta
-        if (cur_value < alpha)
+        if (cur_value <= alpha)
             return NEGA_INFINITY;
         if (cur_value < beta)
             beta = cur_value;
