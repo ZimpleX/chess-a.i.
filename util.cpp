@@ -4,16 +4,17 @@
 #include <iostream>
 #include <cstdio>
 
-#define DEBUG
+// #define DEBUG
 
 using namespace std;
 
 ostream& operator<< (ostream& os, const Board_Stat& bs) {
-    os << "==========  BOARD  STATUS  ==========\n";
-#ifdef DEBUG
-    os << "--------  enpassant pawn:" << bs.enpassant_c << "--------\n";
-#endif
-    os << "    0   1   2   3   4   5   6   7\n";
+    os << "==========  BOARD  STATUS  ==========     ~\n";
+    os << "    0   1   2   3   4   5   6   7         ~\n";
+    string border_line = "  +-------------------------------+       ~";
+    string format_line = "%d |%s %s %s %s %s %s %s %s| %d     ~";
+    string middle_line = "  |   +   +   +   +   +   +   +   |       ~";
+
     for (int r = 0; r < 8; r++) {
         char role_str[8][4];
         for (int c = 0; c < 8; c++) {
@@ -23,9 +24,6 @@ ostream& operator<< (ostream& os, const Board_Stat& bs) {
             int role = cur_piece * side;
             string r_str;
             if (role == EMPTY) {
-                //string sp = "   ";
-                //role_str[c] = sp.c_str();
-                //role_str[c] = 
                 role_str[c][0] = ' ';
                 role_str[c][1] = ' ';
                 role_str[c][2] = ' ';
@@ -60,18 +58,36 @@ ostream& operator<< (ostream& os, const Board_Stat& bs) {
             }
         }
         char line[200];
+        string comb_line;
         if (r == 0) {
-            sprintf(line, "  +-------------------------------+\n%d |%s %s %s %s %s %s %s %s| %d\n",
-                    r, role_str[0], role_str[1], role_str[2], role_str[3], role_str[4], role_str[5], role_str[6], role_str[7], r);
+            comb_line = border_line+"\n"+format_line+"  Status\n";
+        } else if (r == 1) {
+            char num_str[4];
+            sprintf(num_str, "%d", bs.enpassant_c);
+            comb_line = middle_line+"\n"+format_line+"     Enpassant pawn: "+num_str+"\n";
         } else {
-            sprintf(line, "  |   +   +   +   +   +   +   +   |\n%d |%s %s %s %s %s %s %s %s| %d\n",
-                    r, role_str[0], role_str[1], role_str[2], role_str[3], role_str[4], role_str[5], role_str[6], role_str[7], r);
-     
+            comb_line = middle_line+"\n"+format_line+"\n";
         }
+        sprintf(line, comb_line.c_str(),
+                r, role_str[0], role_str[1], role_str[2], role_str[3], role_str[4], role_str[5], role_str[6], role_str[7], r);
+
         os << line;
     }
-    os << "  +-------------------------------+\n";
-    os << "    0   1   2   3   4   5   6   7  \n";
-    os << "===========  END  STATUS  ===========\n";
+    os << border_line << "\n";
+    os << "    0   1   2   3   4   5   6   7         ~\n";
+    os << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 }
 
+
+void print_board_move(Board_Stat bs, int side, int r, int c, int rr, int cc) {
+    char line[44];
+    sprintf(line, "  From [r%d , c%d], To [r%d , c%d]            ~", 
+            r, c, rr, cc);
+    string side_str = (side==AI)?"<A.I.>  ":"<PLAYER>";
+    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+         << side_str << "move:                             ~\n"
+         << "-------------                             ~\n"
+         << line << "\n";
+    cout << bs;
+    cout << "\n\n\n";
+}

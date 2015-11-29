@@ -48,7 +48,6 @@ void ai_move(Board_Stat *bs) {
     int chosen_cost = ai_pre_move(*bs, AI, alpha, beta);
     bs->player_move(ai_next_start_r, ai_next_start_c, 
             ai_next_end_r, ai_next_end_c);
-    cout << "A.I move:\n" << ai_next_start_r << ", " << ai_next_start_c << ", " << ai_next_end_r << ", " << ai_next_end_c << "\n";
 #endif
 }
 
@@ -310,6 +309,8 @@ int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c,
 
 /**************************************/
 bool Board_Stat::terminate_test() {
+    if (is_terminate)
+        return true;
     if (search_depth >= SEARCH_DEPTH)
         return true;
     else 
