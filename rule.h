@@ -74,7 +74,10 @@ private:
 
     bool check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c);
     // eval utils
-    void piece_count(Piece_Count *blk_count, Piece_Count *wht_count);
+    // mobility is counting the num of valid choice of next move
+    // piece_count_weighted has already taken into account
+    // the different coefficients of piece type
+    void piece_count_weighted(Piece_Count *blk_count, Piece_Count *wht_count);
     void eval_mobility(int &w_mob, int &b_mob);
     void pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &b_backwd, int &w_isoltd, int &b_isoltd);
 

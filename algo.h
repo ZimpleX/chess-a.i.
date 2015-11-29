@@ -14,16 +14,32 @@
 /*
  * coefficients for different pieces
  */
-#define KK 200
-#define KQ 9
-#define KR 5
-#define KB 3
-#define KN 3
-#define KP 1
-#define KP_SPEC -0.5
-#define KMOBILITY 0.1
+#define KK 20000
+#define KQ 900
+#define KR 500
+#define KB 330
+#define KN 320
+#define KP 100
+#define KP_SPEC -50
+#define KMOBILITY 10
 
-#define SEARCH_DEPTH 5
+#define SEARCH_DEPTH 7
+
+/*
+ * Cost matrix related to specific position
+ * this is for from the perspective of BLACK (up part)
+ */
+extern int pawn_mat[8][8];
+
+extern int knight_mat[8][8];
+
+extern int bishop_mat[8][8];
+
+extern int rook_mat[8][8];
+
+extern int queen_mat[8][8];
+
+extern int king_mat[8][8];
 
 /*
  * High level description of the alpha-beta pruning:

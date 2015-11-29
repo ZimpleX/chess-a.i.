@@ -222,7 +222,7 @@ int Board_Stat::mob_king(int side, int r, int c) {
         for (int cc=c_s; cc<=c_e; cc++) {
             if (board_stat[rr][cc]*side > 0)
                 continue;
-            ctr++;
+            ctr ++;
         }
     }
 
@@ -244,7 +244,7 @@ int Board_Stat::mob_knight(int side, int r, int c) {
                     continue;
                 if (board_stat[rr][cc]*side > 0)
                     continue;
-                ctr++;
+                ctr ++;
             }
         }
     }

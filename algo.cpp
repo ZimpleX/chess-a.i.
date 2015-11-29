@@ -6,49 +6,92 @@
 
 using namespace std;
 
+int pawn_mat[8][8] = {
+    {0,0,0,0,0,0,0,0},
+    {5,10,10,-20,-20,10,10,5},
+    {5,-5,-10,0,0,-10,-5,5},
+    {0,0,0,20,20,0,0,0},
+    {5,5,10,25,25,10,5,5},
+    {10,10,20,30,30,20,10,10},
+    {50,50,50,50,50,50,50,50},
+    {0,0,0,0,0,0,0,0}
+};
+
+int knight_mat[8][8] = {
+    {-50,-40,-30,-30,-30,-30,-40,-50},
+    {-40,-20,0,5,5,0,-20,-40},
+    {-30,5,10,15,15,10,5,-30},
+    {-30,0,15,20,20,15,0,-30},
+    {-30,5,15,20,20,15,5,-30},
+    {-30,0,10,15,15,10,0,-30},
+    {-40,-20,0,0,0,0,-20,-40},
+    {-50,-40,-30,-30,-30,-30,-40,-50}
+};
+
+int bishop_mat[8][8] = {
+    {-20,-10,-10,-10,-10,-10,-10,-20},
+    {-10,5,0,0,0,0,5,-10},
+    {-10,10,10,10,10,10,10,-10},
+    {-10,0,10,10,10,10,0,-10},
+    {-10,5,5,10,10,5,5,-10},
+    {-10,0,5,10,10,5,0,-10},
+    {-10,0,0,0,0,0,0,-10},
+    {-20,-10,-10,-10,-10,-10,-10,-20}
+};
+
+int rook_mat[8][8] = {
+    {0,0,0,5,5,0,0,0},
+    {-5,0,0,0,0,0,0,-5},
+    {-5,0,0,0,0,0,0,-5},
+    {-5,0,0,0,0,0,0,-5},
+    {-5,0,0,0,0,0,0,-5},
+    {-5,0,0,0,0,0,0,-5},
+    {5,10,10,10,10,10,10,5},
+    {0,0,0,0,0,0,0,0}
+};
+
+int queen_mat[8][8] = {
+    {-20,-10,-10,-5,-5,-10,-10,-20},
+    {-10,0,5,0,0,0,0,-10},
+    {-10,5,5,5,5,5,0,-10},
+    {0,0,5,5,5,5,0,-5},
+    {-5,0,5,5,5,5,0,-5},
+    {-10,0,5,5,5,5,0,-10},
+    {-10,0,0,0,0,0,0,-10},
+    {-20,-10,-10,-5,-5,-10,-10,-20}
+};
+
+int king_mat[8][8] = {
+    {20,30,10,0,0,10,30,20},
+    {20,20,0,0,0,0,20,20},
+    {-10,-20,-20,-20,-20,-20,-20,-10},
+    {-20,-30,-30,-40,-40,-30,-30,-20},
+    {-30,-40,-40,-50,-50,-40,-40,-30},
+    {-30,-40,-40,-50,-50,-40,-40,-30},
+    {-30,-40,-40,-50,-50,-40,-40,-30},
+    {-30,-40,-40,-50,-50,-40,-40,-30}
+};
+
+
 int search_depth;
 int ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c;
 
-// #define DUMMY
+// #define NO_ALPHA
+// #define NO_BETA
 
 void init_ai_search(int &alpha, int &beta);
-void get_to_loc_radius(int role, int from_r, int from_c,
-    int &to_r_lim0, int &to_r_lim1, int &to_c_lim0, int &to_c_lim1);
 
 
 /**************************
  *     called by main     *
  **************************/
 void ai_move(Board_Stat *bs) {
-#ifdef DUMMY
-    for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
-            int role = board_stat[r][c] * AI;
-            if (role <= 0)
-                continue;
-            int to_r_lim0, to_r_lim1, to_c_lim0, to_c_lim1;
-            get_to_loc_radius(role, r, c, to_r_lim0, to_r_lim1, to_c_lim0, to_c_lim1);
-            for (int rr = to_r_lim0; rr <= to_r_lim1; rr++) {
-                for (int cc = to_c_lim0; cc <= to_c_lim1; cc++) {
-                    if (bs.player_move(r, c, rr, cc)) { 
-                        // break
-                        r = 8;
-                        c = 8;
-                        rr = 8;
-                        cc = 8;
-                    }
-                }
-            }
-        }
-    }
-#else
     int alpha;
     int beta;
     init_ai_search(alpha, beta);
     int chosen_cost = ai_pre_move(*bs, AI, alpha, beta);
     bs->player_move(ai_next_start_r, ai_next_start_c, 
             ai_next_end_r, ai_next_end_c);
-#endif
 }
 
 /**************************************
@@ -135,13 +178,19 @@ int ab_pruning(int side, int cur_value, int &alpha, int &beta) {
     if (side == AI) {   // MAX node: alpha
         if (cur_value > beta)
             return POSI_INFINITY;
+#ifdef NO_ALPHA
+#else
         if (cur_value > alpha)
             alpha = cur_value;
+#endif
     } else {            // MIN node: beta
         if (cur_value < alpha)
             return NEGA_INFINITY;
+#ifdef NO_BETA
+#else
         if (cur_value < beta)
             beta = cur_value;
+#endif
     }
     return 0;
 }
@@ -324,7 +373,7 @@ bool Board_Stat::terminate_test() {
  */
 int Board_Stat::eval_board() {
     Piece_Count blk_count, wht_count;
-    piece_count(&blk_count, &wht_count);
+    piece_count_weighted(&blk_count, &wht_count);
 
     int w_pawn_double, b_pawn_double;
     int w_pawn_backwd, b_pawn_backwd;
@@ -334,46 +383,55 @@ int Board_Stat::eval_board() {
     int w_mob, b_mob;
     eval_mobility(w_mob, b_mob);
 
-    return KK*(blk_count.num_k-wht_count.num_k)
-         + KQ*(blk_count.num_q-wht_count.num_q)
-         + KR*(blk_count.num_r-wht_count.num_r)
-         + KB*(blk_count.num_b-wht_count.num_b)
-         + KN*(blk_count.num_n-wht_count.num_n)
-         + KP*(blk_count.num_p-wht_count.num_p)
+    return (blk_count.num_k-wht_count.num_k)
+         + (blk_count.num_q-wht_count.num_q)
+         + (blk_count.num_r-wht_count.num_r)
+         + (blk_count.num_b-wht_count.num_b)
+         + (blk_count.num_n-wht_count.num_n)
+         + (blk_count.num_p-wht_count.num_p)
          + KP_SPEC*(b_pawn_double+b_pawn_backwd+b_pawn_isoltd-w_pawn_double-w_pawn_backwd-w_pawn_isoltd)
-         + KMOBILITY*(b_mob, w_mob);
+         + KMOBILITY*(b_mob-w_mob);
 }
 
-void Board_Stat::piece_count(Piece_Count *blk_count, Piece_Count *wht_count) {
+void Board_Stat::piece_count_weighted(Piece_Count *blk_count, Piece_Count *wht_count) {
     for (int r = 0; r <= 7; r++) {
         for (int c = 0; c <= 7; c++) {
             if (board_stat[r][c] == EMPTY)
                 continue;
             Piece_Count *count;
-            if ((board_stat[r][c]*BLACK) > 0) {
+            int side = (board_stat[r][c]*BLACK > 0) ? BLACK : WHITE;
+            if (side==BLACK) {
                 count = blk_count;
             } else {
                 count = wht_count;
             }
             int role = abs(board_stat[r][c]);
+            int rr = (side==BLACK) ? r: (7-r);
+            int cc = c;
             switch(role) {
                 case KING:
-                    (count->num_k)++;
+                    (count->num_k)+=KK;
+                    (count->num_k)+=king_mat[rr][cc];
                     break;
                 case QUEEN:
-                    (count->num_q)++;
+                    (count->num_q)+=KQ;
+                    (count->num_q)+=queen_mat[rr][cc];
                     break;
                 case ROOK:
-                    (count->num_r)++;
+                    (count->num_r)+=KR;
+                    (count->num_r)+=rook_mat[rr][cc];
                     break;
                 case BISHOP:
-                    (count->num_b)++;
+                    (count->num_b)+=KB;
+                    (count->num_b)+=bishop_mat[rr][cc];
                     break;
                 case KNIGHT:
-                    (count->num_n)++;
+                    (count->num_n)+=KN;
+                    (count->num_n)+=knight_mat[rr][cc];
                     break;
                 case PAWN:
-                    (count->num_p)++;
+                    (count->num_p)+=KP;
+                    (count->num_p)+=pawn_mat[rr][cc];
                     break;
             }
         }
@@ -460,42 +518,4 @@ void init_ai_search(int &alpha, int &beta) {
 }
 
 
-/**********
- * DUMMY
- */
-/*
- * get the limit for search "to" location, based on role and from_r, from_c.
- * return:
- *      to_r_lim0: search bound for row start
- *      to_r_lim1: search bound for row end
- *      to_c_lim0: search bound for col start
- *      to_c_lim1: search bound for col end
- */
-void get_to_loc_radius(int role, int from_r, int from_c, 
-    int &to_r_lim0, int &to_r_lim1, int &to_c_lim0, int &to_c_lim1) {
-    int radius;
-    switch(role) {
-        case KING:
-            radius = 1;
-            break;
-        case QUEEN:
-            radius = 7;
-            break;
-        case BISHOP:
-            radius = 7;
-            break;
-        case KNIGHT:
-            radius = 2;
-            break;
-        case ROOK:
-            radius = 7;
-            break;
-        case PAWN:
-            radius = 2;
-            break;
-    }
-    to_r_lim0 = ((from_r-radius) >= 0) ? (from_r-radius):0;
-    to_r_lim1 = ((from_r+radius) <= 7) ? (from_r+radius):7;
-    to_c_lim0 = ((from_c-radius) >= 0) ? (from_c-radius):0;
-    to_c_lim1 = ((from_c+radius) <= 7) ? (from_c+radius):7;
-}
+

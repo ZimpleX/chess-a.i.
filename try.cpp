@@ -8,4 +8,7 @@ int main () {
     string b = "baba";
 
     cout << a+b << "\n";
+
+    int i = 1;
+    cout << i/2. << "\n";
 }

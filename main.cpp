@@ -44,6 +44,7 @@ int main() {
                 }
             }
         } else {
+            cout << "\n    A.I is thinking ... \n\n";
             int ai_side = (PLAYER == BLACK) ? WHITE:BLACK;
             // no need to check validity here
             ai_move(&bs);
