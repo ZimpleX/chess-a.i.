@@ -17,7 +17,7 @@
 #define BLACK -1
 #define WHITE 1
 
-#define INIT_MOVE BLACK
+#define INIT_MOVE BLACK // a.i. is moving first
 #define PLAYER WHITE
 #define AI BLACK
 
@@ -25,6 +25,13 @@
 
 enum Role {EMPTY=0, KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN};
 
+/*
+ * To be used in evaluation function.
+ * the value in the member variables has already taken into 
+ * account the weight for different type of pieces
+ * For example:
+ *      if there is 1 pawn, then num_p will be 100
+ */
 struct Piece_Count {
     int num_k;
     int num_q;
@@ -43,40 +50,34 @@ struct Piece_Count {
     }
 };
 
-/*
- * up, down, right, left,
- * up-right, up-left, down-right, down-left.
- */
-//enum Dir {UP=1, DN, RG, LF, UR, UL, DR, DL};
-
+// util function checking if index is out of the chess board
 bool check_boarder(int r, int c);
 
-class Board_Stat {
-private:
-    bool is_terminate;
-    /*
-     * indicate the role at that location
-     * White side: positive
-     * Black side: negative
-     */
-    int board_stat[8][8];
 
-    /*
-     * indicate if there could be an en-passant at next move:
-     *      this is set to be the x of a pawn taking his first move 2 steps forward,
-     *      and is set to be INVALID by the opponent move immediately after
-     */
-    int enpassant_c;
+/*
+ * class about:
+ *      --  current board information
+ *      --  move rule
+ *      --  some algo related functions
+ */
+class Board_Stat {
+
+private:
+    bool is_terminate;      // set to true if one king is eaten
+    int board_stat[8][8];   // value = side * piece_type
+                            // e.g.: BLACK * PAWN
+    int enpassant_c;        // indicate enpassant by column number.
+                            // No need to store other information, 
+                            // cuz lifecycle of enpassant is only 1.
 
     // checking funtions: to be used with palyer_move()
     bool player_chk_straight(int start_r, int start_c, int end_r, int end_c);
     bool player_chk_diagnal(int start_r, int start_c, int end_r, int end_c);
-
     bool check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c);
-    // eval utils
-    // mobility is counting the num of valid choice of next move
-    // piece_count_weighted has already taken into account
-    // the different coefficients of piece type
+    // evaluation related functions:
+    //   -- mobility is counting the num of valid choice of next move
+    //   -- piece_count_weighted has already thought about coefficient
+    //   -- pawn_* is finding special pawn patterns
     void piece_count_weighted(Piece_Count *blk_count, Piece_Count *wht_count);
     void eval_mobility(int &w_mob, int &b_mob);
     void pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &b_backwd, int &w_isoltd, int &b_isoltd);
@@ -90,24 +91,22 @@ private:
     int pawn_double(int side, int r, int c);
     int pawn_backwd(int side, int r, int c);
     int pawn_isoltd(int side, int r, int c);
+
 public:
     Board_Stat(int init[8][8]);
-    /*
-     * move the pieces according to the rules, and update all status accordingly
-     * return:
-     *      true: if the move is legal
-     *      false: if the move is illegal
-     * if the king is dead, set is_terminate to true
-     */
+    // move and update board_stat, return true if move succeeded.
     bool player_move(int start_r, int start_c, int end_r, int end_c);
-    // the actual move function, have to be used with ai_pre_move
+    // a.i. move function, *HAVE TO* be used with ai_pre_move()
     bool ai_direct_move(int r_s, int c_s, int r_e, int c_e);
     bool ai_pawn_move(int r_s, int c_s, int r_e, int c_e);
     
-    // algo-related
+    // algo-related functions
+    //   -- terminate_test: indicate when should the a.i. search stop
+    //   -- eval_board: return cost function based on current board
+    //                  high if a.i. is taking advantages
     bool terminate_test();
-    // high if ai has advantage, low otherwise
     int eval_board();
+
     // getter and setter
     bool get_is_terminate();
     int get_piece(int r, int c);

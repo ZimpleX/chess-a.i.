@@ -6,24 +6,20 @@
 using namespace std;
 
 
-/**********  Function declaration  **********/
 
-/**********  Function definition  **********/
-Board_Stat::Board_Stat(int init[8][8]) {
-    for (int r = 0; r < 8; r ++) {
-        for (int c = 0; c < 8; c ++){
-            board_stat[r][c] = init[r][c];
-        }
-    }
-    is_terminate = false;
-    enpassant_c = INVALID;
-}
 
+/*************************************
+ *     move functions for player     *
+ *************************************/
 /*
- * Assumption: r and c are within 0 ~ 7, and the side is correct
- *             the start location is not empty
- * don't check game result here
- * this function only checks if the move is valid, and update board_stat
+ * Assumption: Before calling this function, you should have checked:
+ *      -- side of the player
+ *      -- r, c are not out of bound (0~7)
+ *      -- start position is not empty
+ * This function checks if the move is valid, and update board_stat.
+ * The checking is strict and somehow expensive, as it is covering the
+ * "crazy" inputs from user.
+ * If you want to move a piece in A.I. search, use ai_move() / ai_pre_move()
  */
 bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
     // life-cycle of enpassant is only one move
@@ -75,7 +71,9 @@ bool Board_Stat::player_move(int start_r, int start_c, int end_r, int end_c) {
 
 
 /*
- * Util functions to enforce the chess rule
+ * Enforce the chess rule 
+ *      -- called when start and end are on a straight line)
+ *      -- check if all location between start and end point are empty
  */
 bool Board_Stat::player_chk_straight(int start_r, int start_c, int end_r, int end_c) {
     if (start_r == end_r) {
@@ -98,7 +96,11 @@ bool Board_Stat::player_chk_straight(int start_r, int start_c, int end_r, int en
     return true;
 }
 
-
+/*
+ * Enforce chess rule:
+ *      -- called when start and end point are on the diagnal position
+ *      -- check if all points between start and end are empty
+ */
 bool Board_Stat::player_chk_diagnal(int start_r, int start_c, int end_r, int end_c) {
     if (abs(start_r - end_r) != abs(start_c - end_c))
         return false;
@@ -113,15 +115,17 @@ bool Board_Stat::player_chk_diagnal(int start_r, int start_c, int end_r, int end
 }
 
 /*
- * special rule for pawn: en-passant / taking / non-taking / promote
+ * special rule for pawn: 
+ *      -- en-passant
+ *      -- taking
+ *      -- non-taking
+ *      -- promote
  */
 bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int side, int &new_enpassant_c) {
     new_enpassant_c = INVALID;
     int dr = start_r - end_r;
     int dc = start_c - end_c;
-    ///////////////
-    //  check x  //
-    ///////////////
+    // check x
     // check if the move is taking a piece
     bool is_take;
     if (dc == 0)
@@ -130,10 +134,7 @@ bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int 
         is_take = true;
     else
         return false;
-    ///////////////
-    //  check y  //
-    ///////////////
-    // check if y move is valid
+    // check y
     // Black pawn start from y=1, white pawn start from y=6
     if (dr * side == 1) {
         // move up or down one step
@@ -173,7 +174,9 @@ bool Board_Stat::check_pawn(int start_r, int start_c, int end_r, int end_c, int 
     return true;
 }
 
-
+/*****************************************
+ *    Move functions specific to A.I.    *
+ *****************************************/
 /*
  * This has to be called within sweep_straight / sweep_diagnal / ai_pre_move
  * Cuz it will not make strict check for validity of rule
@@ -193,7 +196,8 @@ bool Board_Stat::ai_direct_move(int r_s, int c_s, int r_e, int c_e) {
 }
 
 /*
- * Unlike the ai_direct_move function, ai_pawn_move will make stricter check
+ * Unlike the ai_direct_move function, ai_pawn_move will
+ * make strict check of validity, by wrapping check_pawn()
  */
 bool Board_Stat::ai_pawn_move(int r_s, int c_s, int r_e, int c_e) {
     if (board_stat[r_s][c_s]*board_stat[r_e][c_e] > 0)
@@ -209,7 +213,14 @@ bool Board_Stat::ai_pawn_move(int r_s, int c_s, int r_e, int c_e) {
 }
 
 
-/*****************************************/
+/********************************
+ *     mobility calculation     *
+ ********************************/
+/*
+ * check mobility of king
+ * i.e.:
+ *      sweep 8 positions around it
+ */
 int Board_Stat::mob_king(int side, int r, int c) {
     int ctr = 0;
 
@@ -229,6 +240,11 @@ int Board_Stat::mob_king(int side, int r, int c) {
     return ctr;
 }
 
+/*
+ * check mobility of knight
+ * i.e.:
+ *      The nested loop is just sweeping 8 possible positions
+ */
 int Board_Stat::mob_knight(int side, int r, int c) {
     int ctr = 0;
 
@@ -252,9 +268,12 @@ int Board_Stat::mob_knight(int side, int r, int c) {
     return ctr;
 }
 
+/*
+ * mobility of pawn is not accurate --> ignore special rules such as enpassant.
+ * this does not matter since the evaluation function is just estimation
+ */
 int Board_Stat::mob_pawn(int side, int r, int c) {
     int ctr = 0;
-    
     int kr = (side==BLACK) ? -1 : 1;
     int cc = c;
     int rr = r+kr;
@@ -272,6 +291,11 @@ int Board_Stat::mob_pawn(int side, int r, int c) {
     return ctr;
 }
 
+/*
+ * check mobility for a piece that can move arbitrary steps straight.
+ * i.e.:
+ *      rook, queen
+ */
 int Board_Stat::mob_straight(int side, int r, int c) {
     int ctr = 0;
 
@@ -301,6 +325,11 @@ int Board_Stat::mob_straight(int side, int r, int c) {
     return ctr;
 }
 
+/*
+ * check mobility for a piece that can move arbitrary steps diagnally
+ * i.e.:
+ *      bishop, queen
+ */
 int Board_Stat::mob_diagnal(int side, int r, int c) {
     int ctr = 0;
 
@@ -327,7 +356,10 @@ int Board_Stat::mob_diagnal(int side, int r, int c) {
     return ctr;
 }
 
-/*****************************************/
+
+/*************************************
+ *     check pawn special pattern    *
+ *************************************/
 int Board_Stat::pawn_double(int side, int r, int c) {
     return 0;
 }
@@ -340,10 +372,22 @@ int Board_Stat::pawn_isoltd(int side, int r, int c) {
     return 0;
 }
 
-/*****************************************/
-/*
- * Getter and setter
- */
+
+
+
+/**************************
+ *  Getter / constructor  *
+ **************************/
+Board_Stat::Board_Stat(int init[8][8]) {
+    for (int r = 0; r < 8; r ++) {
+        for (int c = 0; c < 8; c ++){
+            board_stat[r][c] = init[r][c];
+        }
+    }
+    is_terminate = false;
+    enpassant_c = INVALID;
+}
+
 bool Board_Stat::get_is_terminate() {
     return is_terminate;
 }

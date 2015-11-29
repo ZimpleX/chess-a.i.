@@ -6,78 +6,11 @@
 
 using namespace std;
 
-int pawn_mat[8][8] = {
-    {0,0,0,0,0,0,0,0},
-    {5,10,10,-20,-20,10,10,5},
-    {5,-5,-10,0,0,-10,-5,5},
-    {0,0,0,20,20,0,0,0},
-    {5,5,10,25,25,10,5,5},
-    {10,10,20,30,30,20,10,10},
-    {50,50,50,50,50,50,50,50},
-    {0,0,0,0,0,0,0,0}
-};
-
-int knight_mat[8][8] = {
-    {-50,-40,-30,-30,-30,-30,-40,-50},
-    {-40,-20,0,5,5,0,-20,-40},
-    {-30,5,10,15,15,10,5,-30},
-    {-30,0,15,20,20,15,0,-30},
-    {-30,5,15,20,20,15,5,-30},
-    {-30,0,10,15,15,10,0,-30},
-    {-40,-20,0,0,0,0,-20,-40},
-    {-50,-40,-30,-30,-30,-30,-40,-50}
-};
-
-int bishop_mat[8][8] = {
-    {-20,-10,-10,-10,-10,-10,-10,-20},
-    {-10,5,0,0,0,0,5,-10},
-    {-10,10,10,10,10,10,10,-10},
-    {-10,0,10,10,10,10,0,-10},
-    {-10,5,5,10,10,5,5,-10},
-    {-10,0,5,10,10,5,0,-10},
-    {-10,0,0,0,0,0,0,-10},
-    {-20,-10,-10,-10,-10,-10,-10,-20}
-};
-
-int rook_mat[8][8] = {
-    {0,0,0,5,5,0,0,0},
-    {-5,0,0,0,0,0,0,-5},
-    {-5,0,0,0,0,0,0,-5},
-    {-5,0,0,0,0,0,0,-5},
-    {-5,0,0,0,0,0,0,-5},
-    {-5,0,0,0,0,0,0,-5},
-    {5,10,10,10,10,10,10,5},
-    {0,0,0,0,0,0,0,0}
-};
-
-int queen_mat[8][8] = {
-    {-20,-10,-10,-5,-5,-10,-10,-20},
-    {-10,0,5,0,0,0,0,-10},
-    {-10,5,5,5,5,5,0,-10},
-    {0,0,5,5,5,5,0,-5},
-    {-5,0,5,5,5,5,0,-5},
-    {-10,0,5,5,5,5,0,-10},
-    {-10,0,0,0,0,0,0,-10},
-    {-20,-10,-10,-5,-5,-10,-10,-20}
-};
-
-int king_mat[8][8] = {
-    {20,30,10,0,0,10,30,20},
-    {20,20,0,0,0,0,20,20},
-    {-10,-20,-20,-20,-20,-20,-20,-10},
-    {-20,-30,-30,-40,-40,-30,-30,-20},
-    {-30,-40,-40,-50,-50,-40,-40,-30},
-    {-30,-40,-40,-50,-50,-40,-40,-30},
-    {-30,-40,-40,-50,-50,-40,-40,-30},
-    {-30,-40,-40,-50,-50,-40,-40,-30}
-};
-
 
 int search_depth;
+// the chosen next move of a.i. at the end of current search
 int ai_next_start_r, ai_next_start_c, ai_next_end_r, ai_next_end_c;
 
-// #define NO_ALPHA
-// #define NO_BETA
 
 void init_ai_search(int &alpha, int &beta);
 
@@ -94,16 +27,21 @@ void ai_move(Board_Stat *bs) {
             ai_next_end_r, ai_next_end_c);
 }
 
-/**************************************
- *     skeleton of main algorithm     *
- **************************************/
+
+/**********************************
+ *     main body of algorithm     *
+ *          -- DFS search         *
+ *          -- alpha-beta         *
+ **********************************/
 /*
- * alpha: initial NEGA_INFINITY --> AI side (MAX)
- * beta: initial POSI_INFINITY  --> player side (MIN)
+ * A.I. is the MAX node, PLAYER is the MIN node
+ *
+ * alpha: initial NEGA_INFINITY --> MAX node pruning
+ * beta: initial POSI_INFINITY  --> MIN node pruning
  */
 int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
-    int cur_min = POSI_INFINITY;    // for AI return value
-    int cur_max = NEGA_INFINITY;    // for player return value
+    int cur_min = POSI_INFINITY;    // return value if side is AI
+    int cur_max = NEGA_INFINITY;    // return value if side if PLAYER
 
     search_depth ++;
     if (cur_bs.terminate_test()) {
@@ -118,6 +56,7 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
             if (role <= 0)
                 continue;
             switch (role) {
+            // wrapper of all sweep_* functions
                 case KING:
                     prune_stat = sweep_king(cur_bs, side, r, c, 
                             alpha, beta, cur_min, cur_max);
@@ -145,7 +84,9 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
                             alpha, beta, cur_min, cur_max);
                     break;
                 default:
-                    cout << "========\nshit\n=======\n";
+                    cout << ">>>>>>>>>> Something is WRONG <<<<<<<<<<\n";
+                    exit(1);
+                    break;
             } // switch case end
             if (prune_stat != 0) {
                 search_depth --;
@@ -154,50 +95,51 @@ int ai_pre_move(Board_Stat cur_bs, int side, int alpha, int beta) {
         }
     }
     search_depth --;
+    // return value will affect the parent behavior
+    // For example (side == AI):
+    //      cur_max < parent_beta, then parent_beta will be updated
+    //      cur_max < parent_alpha, then parent node subtree is pruned
     if (side == AI)
-        return cur_max; //(hope to be less than alpha, or to update beta)
+        return cur_max;
     else
-        return cur_min; //(hope to let parent AI to update alpha, or to be less than beta)
+        return cur_min;
 }
 
 /**************************************
  *     update important variables     *
- **************************************/
-
-/*
+ *          -- alpha / beta           *
+ *          -- current node min/max   *
+ **************************************
  * Main body of alpha-beta pruning, update alpha beta accordingly
  *
- * MAX node: prune beta, update alpha
- * MIN node: prune aplta, update beta
+ * MAX node: 
+ *      prune beta, update alpha
+ * MIN node: 
+ *      prune aplta, update beta
  *
  * return
- *      0 if searching of current node children should be continued
- *      NEGA_INFINITY or POSI_INFINITY if the node is pruned
+ *      0 if searching should be continued
+ *      NEGA_INFINITY: pruned, return to MAX parent
+ *      POSI_INFINITY: pruned, return to MIN parent
  */
 int ab_pruning(int side, int cur_value, int &alpha, int &beta) {
     if (side == AI) {   // MAX node: alpha
         if (cur_value > beta)
             return POSI_INFINITY;
-#ifdef NO_ALPHA
-#else
         if (cur_value > alpha)
             alpha = cur_value;
-#endif
     } else {            // MIN node: beta
         if (cur_value < alpha)
             return NEGA_INFINITY;
-#ifdef NO_BETA
-#else
         if (cur_value < beta)
             beta = cur_value;
-#endif
     }
     return 0;
 }
 
 /*
  * update cur_max, cur_min,
- * record start and end row, column if we go back to root
+ * record move r, c if we are at the root node (can be the A.I. final chosen move)
  */
 void update_loc_minmax(int r, int c, int rr, int cc, 
         int cur_cost, int &cur_min, int &cur_max) {
@@ -212,11 +154,13 @@ void update_loc_minmax(int r, int c, int rr, int cc,
     cur_min = (cur_min < cur_cost) ? cur_min : cur_cost;
 }
 
+
 /************************************************
  *      expand tree for specific piece type     *
- ************************************************/
-/*
- * Core part to do pruning or recursion --> common to all sweep_* functions
+ ************************************************
+ * Core part of the algo: common to all sweep_* functions
+ *      -- pruning
+ *      -- recursion
  */
 int core_prune_recursion(Board_Stat *moved_bs, 
         int side, int r, int c, int rr, int cc, 
@@ -228,9 +172,7 @@ int core_prune_recursion(Board_Stat *moved_bs,
     return prune_stat;
 }
 
-/*
- * return prune_stat
- */
+// return prune_stat (see ab_pruning())
 int sweep_king(Board_Stat cur_bs, int side, int r, int c,
         int &alpha, int &beta, int &cur_min, int &cur_max) {
     int r_s = (r>0)?(r-1):0;
@@ -253,6 +195,7 @@ int sweep_king(Board_Stat cur_bs, int side, int r, int c,
     return 0;
 }
 
+// return prune_stat (see ab_pruning())
 int sweep_knight(Board_Stat cur_bs, int side, int r, int c,
         int &alpha, int &beta, int &cur_min, int &cur_max) {
     Board_Stat moved_bs = cur_bs;
@@ -279,6 +222,7 @@ int sweep_knight(Board_Stat cur_bs, int side, int r, int c,
     return 0;
 }
 
+// return prune_stat (see ab_pruning())
 int sweep_pawn(Board_Stat cur_bs, int side, int r, int c,
         int &alpha, int &beta, int &cur_min, int &cur_max) {
     int r_s = (r>1)?(r-2):0;
@@ -301,6 +245,7 @@ int sweep_pawn(Board_Stat cur_bs, int side, int r, int c,
     return 0;
 }
 
+// return prune_stat (see ab_pruning())
 int sweep_straight(Board_Stat cur_bs, int side, int r, int c, 
         int &alpha, int &beta, int &cur_min, int &cur_max) {
     Board_Stat moved_bs = cur_bs;
@@ -330,6 +275,7 @@ int sweep_straight(Board_Stat cur_bs, int side, int r, int c,
     return 0;
 }
 
+// return prune_stat (see ab_pruning())
 int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c,
         int &alpha, int &beta, int &cur_min, int &cur_max) {
     Board_Stat moved_bs = cur_bs;
@@ -356,7 +302,11 @@ int sweep_diagonal(Board_Stat cur_bs, int side, int r, int c,
     return 0;
 }
 
-/**************************************/
+/**************************
+ *    Termination test    *
+ **************************
+ * simple cut-off
+ */
 bool Board_Stat::terminate_test() {
     if (is_terminate)
         return true;
@@ -366,10 +316,13 @@ bool Board_Stat::terminate_test() {
         return false;
 }
 
-/*
- * evaluation function:
- *      favors BLACK (AI), so it will be large if BLACK is gaining advantage
- *
+/*******************************
+ *     Evaluation function     *
+ *   -- piece count (weighted) *
+ *   -- pawn pattern detect    *
+ *   -- mobility count         *
+ *******************************
+ * return large if BLACK (AI) is in advantage
  */
 int Board_Stat::eval_board() {
     Piece_Count blk_count, wht_count;
@@ -393,6 +346,7 @@ int Board_Stat::eval_board() {
          + KMOBILITY*(b_mob-w_mob);
 }
 
+// fill Piece_Count with weighted value
 void Board_Stat::piece_count_weighted(Piece_Count *blk_count, Piece_Count *wht_count) {
     for (int r = 0; r <= 7; r++) {
         for (int c = 0; c <= 7; c++) {
@@ -438,7 +392,7 @@ void Board_Stat::piece_count_weighted(Piece_Count *blk_count, Piece_Count *wht_c
     }
 }
 
-
+// set input to be the count of these pawn patterns
 void Board_Stat::pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &b_backwd, int &w_isoltd, int &b_isoltd) {
     w_double = 0;
     b_double = 0;
@@ -467,6 +421,7 @@ void Board_Stat::pawn_pattern(int &w_double, int &b_double, int &w_backwd, int &
     b_isoltd /= 2;
 }
 
+// count number of valid move of both sides
 void Board_Stat::eval_mobility(int &w_mob, int &b_mob) {
     w_mob = 0;
     b_mob = 0;
@@ -504,7 +459,10 @@ void Board_Stat::eval_mobility(int &w_mob, int &b_mob) {
 }
 
 
-/**************************************/
+
+/**************************
+ *     Initialization     *
+ **************************/
 void init_ai_search(int &alpha, int &beta) {
     search_depth = 0;
 

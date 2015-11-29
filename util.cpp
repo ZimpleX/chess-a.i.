@@ -79,6 +79,7 @@ ostream& operator<< (ostream& os, const Board_Stat& bs) {
 }
 
 
+// wrapper of Board_Stat cout
 void print_board_move(Board_Stat bs, int side, int r, int c, int rr, int cc) {
     char line[44];
     sprintf(line, "  From [r%d , c%d], To [r%d , c%d]            ~", 
