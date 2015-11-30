@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-g
+CFLAGS=
 
 .PHONY : all
 all : main.o

@@ -17,9 +17,10 @@
 #define BLACK -1
 #define WHITE 1
 
-#define INIT_MOVE BLACK // a.i. is moving first
 #define PLAYER WHITE
 #define AI BLACK
+
+#define INIT_MOVE PLAYER // a.i. is moving first
 
 #define INVALID -1
 

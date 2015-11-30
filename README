@@ -35,7 +35,7 @@ Usage:
 * To build: type `make` in terminal
 * To play:
     * A.I. is holding pieces at the upper part of the board
-    * when the game starts, A.I. is moving first (To change this behavior, change the "INIT_MOVE" macro in rule.h)
+    * when the game starts, PLAYER is moving first (To change this behavior, change the "INIT_MOVE" macro in rule.h)
     * Player should input 4 integers to move his piece (from_row, from_column, to_row, to_column)
     * After every move, the following is printed out:
         * board

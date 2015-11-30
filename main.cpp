@@ -44,6 +44,13 @@ int main() {
                 cout << "|____________|________________________________ \n"
                      << "| from_row   from_column   to_row   to_column \\\n";
                 cin >> from_r >> from_c >> to_r >> to_c;
+                if (cin.fail()) {
+                    cout << "please input integer\n";
+                    cin.clear();
+                    cin.ignore();
+                    from_r = INVALID;
+                }
+                cin.ignore(100000, '\n');
                 cout << "\\_____________________________________________/\n";
                 if (check_border(from_r, from_c)
                  && check_border(to_r, to_c)
